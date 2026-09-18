@@ -1,0 +1,25 @@
+{
+  "products": [
+    {
+      "name": "MSR PocketRocket Stove",
+      "asin": "B01N5O7551",
+      "price_alert_threshold": 40.00,
+      "notes": "Lightweight backpacking stove"
+    },
+    {
+      "name": "Example Product 2",
+      "asin": "B0ABCDEFGH",
+      "price_alert_threshold": 50.00,
+      "notes": "Add more products here"
+    }
+  ],
+  "scheduler": {
+    "run_time": "09:00",
+    "timezone": "America/Chicago",
+    "frequency": "daily"
+  },
+  "notifications": {
+    "email_alerts": false,
+    "email": "your_email@gmail.com"
+  }
+}
