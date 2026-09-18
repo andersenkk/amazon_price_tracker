@@ -26,26 +26,32 @@ init_database()
 def serve_style():
     """Serve style.css from style/ folder"""
     try:
-        return send_file('style/style.css', mimetype='text/css')
-    except FileNotFoundError:
-        return jsonify({'success': False, 'error': 'style.css not found in style/ folder'}), 404
+        file_path = os.path.join(os.path.dirname(__file__), 'style/style.css')
+        return send_file(file_path, mimetype='text/css')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
 
 # Serve script.js from the static/ folder
 @app.route('/script.js')
 def serve_script():
     """Serve script.js from static/ folder"""
     try:
-        return send_file('static/script.js', mimetype='application/javascript')
-    except FileNotFoundError:
-        return jsonify({'success': False, 'error': 'script.js not found in static/ folder'}), 404
+        file_path = os.path.join(os.path.dirname(__file__), 'static/script.js')
+        return send_file(file_path, mimetype='application/javascript')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
 
 # Serve product.js from the static/ folder if it exists
 @app.route('/product.js')
 def serve_product_js():
     """Serve product.js from static/ folder"""
     try:
-        return send_file('static/product.js', mimetype='application/javascript')
-    except FileNotFoundError:
+        file_path = os.path.join(os.path.dirname(__file__), 'static/product.js')
+        if os.path.exists(file_path):
+            return send_file(file_path, mimetype='application/javascript')
+        else:
+            return '', 404
+    except Exception as e:
         return '', 404
 
 # Serve alerts.js from the static/ folder if it exists
@@ -53,19 +59,26 @@ def serve_product_js():
 def serve_alerts_js():
     """Serve alerts.js from static/ folder"""
     try:
-        return send_file('static/alerts.js', mimetype='application/javascript')
-    except FileNotFoundError:
+        file_path = os.path.join(os.path.dirname(__file__), 'static/alerts.js')
+        if os.path.exists(file_path):
+            return send_file(file_path, mimetype='application/javascript')
+        else:
+            return '', 404
+    except Exception as e:
         return '', 404
  
 @app.route('/')
 def index():
     """Render the main dashboard page from root"""
     try:
-        with open('index.html', 'r') as f:
+        file_path = os.path.join(os.path.dirname(__file__), 'index.html')
+        with open(file_path, 'r') as f:
             html_content = f.read()
         return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
-    except FileNotFoundError:
-        return jsonify({'success': False, 'error': 'index.html not found in root directory'}), 500
+    except FileNotFoundError as e:
+        return jsonify({'success': False, 'error': 'index.html not found'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/product/<asin>')
 def product_detail(asin):
@@ -131,8 +144,6 @@ def add_new_product():
         # Add to database
         product_id = add_product(asin, name, alert_threshold)
         
-        # Only store the newly added product's initial scrape. The full watchlist
-        # refresh happens explicitly from the refresh button when the user wants it.
         return jsonify({
             'success': True, 
             'message': f'Added {name}',
@@ -249,7 +260,6 @@ def manual_scrape(asin):
         if not result or not result['price']:
             return jsonify({'success': False, 'error': 'Failed to scrape product'}), 400
         
-        # Save price
         alert_triggered = save_price(
             asin=asin,
             price=result['price'],
@@ -272,7 +282,6 @@ def scrape_all():
     """API endpoint: Run scraper for all products now"""
     try:
         print("[DEBUG] Scraping all products...")
-        # Run in background thread so request doesn't timeout
         thread = threading.Thread(target=scrape_all_products)
         thread.daemon = True
         thread.start()
@@ -299,9 +308,13 @@ if __name__ == '__main__':
     print("PRICE TRACKER WEB DASHBOARD")
     print("=" * 70)
     print("\n✓ Starting Flask server...")
-    print("✓ Open your browser to: http://localhost:5000")
+    
+    # Get port from environment variable (Render sets this) or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    
+    print(f"✓ Running on port: {port}")
     print("✓ Press Ctrl+C to stop\n")
     
-    # Run Flask app
-    app.run(debug=True, port=5000)
+    # Run Flask app - bind to 0.0.0.0 so it's accessible externally
+    app.run(host='0.0.0.0', port=port, debug=False)
 
