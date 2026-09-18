@@ -3,7 +3,7 @@ Price Tracker Web Dashboard
 Flask application to manage products and view price history
 """
  
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file
 from database import (
     init_database, get_all_products, add_product, 
     delete_product,
@@ -16,10 +16,46 @@ import threading
 import time
 import os
  
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__)
  
 # Initialize database on startup
 init_database()
+
+# Serve style.css from the style/ folder
+@app.route('/style.css')
+def serve_style():
+    """Serve style.css from style/ folder"""
+    try:
+        return send_file('style/style.css', mimetype='text/css')
+    except FileNotFoundError:
+        return jsonify({'success': False, 'error': 'style.css not found in style/ folder'}), 404
+
+# Serve script.js from the static/ folder
+@app.route('/script.js')
+def serve_script():
+    """Serve script.js from static/ folder"""
+    try:
+        return send_file('static/script.js', mimetype='application/javascript')
+    except FileNotFoundError:
+        return jsonify({'success': False, 'error': 'script.js not found in static/ folder'}), 404
+
+# Serve product.js from the static/ folder if it exists
+@app.route('/product.js')
+def serve_product_js():
+    """Serve product.js from static/ folder"""
+    try:
+        return send_file('static/product.js', mimetype='application/javascript')
+    except FileNotFoundError:
+        return '', 404
+
+# Serve alerts.js from the static/ folder if it exists
+@app.route('/alerts.js')
+def serve_alerts_js():
+    """Serve alerts.js from static/ folder"""
+    try:
+        return send_file('static/alerts.js', mimetype='application/javascript')
+    except FileNotFoundError:
+        return '', 404
  
 @app.route('/')
 def index():
@@ -27,7 +63,7 @@ def index():
     try:
         with open('index.html', 'r') as f:
             html_content = f.read()
-        return html_content
+        return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
     except FileNotFoundError:
         return jsonify({'success': False, 'error': 'index.html not found in root directory'}), 500
 
@@ -268,3 +304,4 @@ if __name__ == '__main__':
     
     # Run Flask app
     app.run(debug=True, port=5000)
+
