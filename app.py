@@ -23,19 +23,19 @@ init_database()
  
 @app.route('/')
 def index():
-    """Render the main dashboard page"""
-    return render_template('index.html')
- 
-@app.route('/style.css')
-def style_css():
-    """Serve the dashboard stylesheet."""
-    return send_from_directory('.', 'style.css')
- 
+    """Render the main dashboard page from root"""
+    try:
+        with open('index.html', 'r') as f:
+            html_content = f.read()
+        return html_content
+    except FileNotFoundError:
+        return jsonify({'success': False, 'error': 'index.html not found in root directory'}), 500
+
 @app.route('/product/<asin>')
 def product_detail(asin):
     """Render the detail page for a tracked product."""
     return render_template('product.html', asin=asin)
- 
+
 @app.route('/alerts')
 def alerts_page():
     """Render the configured alert preferences page."""
@@ -114,11 +114,11 @@ def get_product_history(asin):
         period = request.args.get('period', '30d')
         if period not in periods:
             return jsonify({'success': False, 'error': 'Invalid history period'}), 400
- 
+
         product = get_product_settings(asin)
         if not product:
             return jsonify({'success': False, 'error': 'Product not found'}), 404
- 
+
         history = get_price_history_last_days(asin, days=periods[period])
         stats = {
             'min_price': min((item[0] for item in history), default=None),
@@ -149,7 +149,7 @@ def get_product_history(asin):
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
- 
+
 @app.route('/api/products/<asin>', methods=['PATCH'])
 def update_product(asin):
     """API endpoint: Update target price and future alert contact details."""
@@ -165,27 +165,27 @@ def update_product(asin):
                     raise ValueError
             except (TypeError, ValueError):
                 return jsonify({'success': False, 'error': 'Target price must be a positive number'}), 400
- 
+
         email = (data.get('email') or '').strip()
         phone = (data.get('phone') or '').strip()
         if not update_product_settings(asin, target_price, email, phone):
             return jsonify({'success': False, 'error': 'Product not found'}), 404
- 
+
         return jsonify({'success': True, 'message': 'Product settings updated'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
- 
+
 @app.route('/api/products/<asin>', methods=['DELETE'])
 def remove_product(asin):
     """API endpoint: Stop tracking a product and remove its history."""
     try:
         if not delete_product(asin):
             return jsonify({'success': False, 'error': 'Product not found'}), 404
- 
+
         return jsonify({'success': True, 'message': f'Removed {asin}'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
- 
+
 @app.route('/api/alerts', methods=['GET'])
 def get_alerts():
     """API endpoint: Get products with configured alert preferences."""
@@ -194,7 +194,7 @@ def get_alerts():
         for asin, name, target, email, phone in get_alert_products()
     ]
     return jsonify({'success': True, 'alerts': alerts})
- 
+
 @app.route('/api/alerts/<asin>', methods=['DELETE'])
 def remove_alert(asin):
     """API endpoint: Clear alert preferences without deleting the product."""
